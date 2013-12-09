@@ -45,6 +45,14 @@
                (concat res p))
         res))))
 
+(defn dedup [tweets]
+  (-> (reduce (fn [[saw players] player] 
+            (if-not (some #{(player :screen_name)} saw) 
+              [(conj saw (player :screen_name)) (conj players player)] 
+              [saw players]))  
+          [#{} []] tweets)
+      second))
+
 (defn scan-for [q]
   (let [players-path (str (conf :path :players) "." (hash q))   ;; making a somewhat unique "db" based on a query
         player-db (edn/read-string (if (.exists (as-file players-path))
@@ -52,4 +60,4 @@
         since-id (or (next-since-id player-db) 0)
         new-players (up-to-now q :since-id since-id)]
     (when (seq new-players)
-      (spit players-path (pr-str (concat player-db new-players))))))
+      (spit players-path (pr-str (dedup (concat player-db new-players)))))))
